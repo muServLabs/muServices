@@ -10,6 +10,8 @@
 
 	<context:annotation-config/>
 	<context:component-scan base-package="com.springboot"/>
+	<!-- <context:component-scan base-package="com.springboot.service"/> -->
+	<!-- <context:component-scan base-package="com.springboot.model"/> -->
 
 	<bean id="address1" class="com.springboot.model.Address">
 		<constructor-arg value="21,Lohianagar"></constructor-arg>
