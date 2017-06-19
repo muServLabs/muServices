@@ -1,3 +1,4 @@
+<?xml version="1.0" encoding="UTF-8"?>
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
 	xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
 	<modelVersion>4.0.0</modelVersion>
@@ -8,56 +9,74 @@
 	<packaging>jar</packaging>
 
 	<name>SpringBootRestApiExample</name>
+	<description></description>
 
 	<parent>
 		<groupId>org.springframework.boot</groupId>
 		<artifactId>spring-boot-starter-parent</artifactId>
-		<version>1.4.3.RELEASE</version>
+		<version>1.4.1.RELEASE</version>
+		<!-- <relativePath/> -->
 	</parent>
 
 	<properties>
-		<java.version>1.8</java.version>
-		<!-- Additionally, Please make sure that your JAVA_HOME is pointing to 
-			1.8 when building on commandline -->
+		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+		<maven.compiler.source>1.8</maven.compiler.source>
+		<maven.compiler.target>1.8</maven.compiler.target>	
 	</properties>
 
 	<dependencies>
-		<!-- Add typical dependencies for a web application -->
-		<!-- Adds Tomcat and Spring MVC, along others -->
+		<dependency>
+			<groupId>org.springframework.boot</groupId>
+			<artifactId>spring-boot-starter-data-jpa</artifactId>
+		</dependency>
 		<dependency>
 			<groupId>org.springframework.boot</groupId>
 			<artifactId>spring-boot-starter-web</artifactId>
 		</dependency>
 		<dependency>
-    		<groupId>com.fasterxml.jackson.dataformat</groupId>
-    		<artifactId>jackson-dataformat-xml</artifactId>
+			<groupId>org.springframework.boot</groupId>
+			<artifactId>spring-boot-starter</artifactId>
 		</dependency>
 		<dependency>
 	        <groupId>org.springframework</groupId>
-	        <artifactId>spring-core</artifactId>
-	    </dependency>
-	    <dependency>
-	        <groupId>org.springframework</groupId>
-	        <artifactId>spring-expression</artifactId>
-	    </dependency>
-	    <dependency>
-	        <groupId>org.springframework</groupId>
-	        <artifactId>spring-beans</artifactId>
-	    </dependency>
-	    <dependency>
-	        <groupId>org.springframework</groupId>
 	        <artifactId>spring-context</artifactId>
 	    </dependency>
-	    <dependency>
-		    <groupId>org.springframework</groupId>
-		    <artifactId>spring-oxm</artifactId>
+		<!-- database -->
+		<dependency>
+			<groupId>org.postgresql</groupId>
+			<artifactId>postgresql</artifactId>
+		</dependency>	
+		<!-- https://mvnrepository.com/artifact/mysql/mysql-connector-java -->
+		<dependency>
+		    <groupId>mysql</groupId>
+		    <artifactId>mysql-connector-java</artifactId>
+		    <version>5.1.6</version>
 		</dependency>
+
+		<dependency>
+		    <groupId>com.google.collections</groupId>
+		    <artifactId>google-collections</artifactId>
+		    <version>1.0-rc2</version>
+		</dependency>
+		<!-- https://mvnrepository.com/artifact/commons-beanutils/commons-beanutils -->
+		<dependency>
+		    <groupId>commons-beanutils</groupId>
+		    <artifactId>commons-beanutils</artifactId>
+		    <version>1.9.1</version>
+		</dependency>
+		<!-- https://mvnrepository.com/artifact/com.google.guava/guava -->
+		<dependency>
+		    <groupId>com.google.guava</groupId>
+		    <artifactId>guava</artifactId>
+		    <version>r05</version>
+		</dependency>
+
+
 	</dependencies>
+	
 	<build>
 		<plugins>
-			<plugin><!-- Include if you want to make an executable jar[FAT JAR which 
-					includes all dependencies along with sprinboot loader] that you can run on 
-					commandline using java -jar NAME -->
+			<plugin>
 				<groupId>org.springframework.boot</groupId>
 				<artifactId>spring-boot-maven-plugin</artifactId>
 			</plugin>
@@ -66,4 +85,6 @@
 		<outputDirectory>target</outputDirectory>
 		<finalName>${project.artifactId}-${project.version}</finalName>
 	</build>
+	
+
 </project>

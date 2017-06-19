@@ -1,6 +1,8 @@
 package com.springboot.controller;
 
 import java.util.List;
+import java.util.Map;
+import java.io.Serializable;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -8,117 +10,145 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.http.MediaType;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.ResponseBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.util.UriComponentsBuilder;
+import org.springframework.data.repository.CrudRepository;
+
+import org.apache.commons.beanutils.BeanUtils;
 
 import com.springboot.model.User;
 import com.springboot.service.UserService;
+import com.springboot.service.EntityService;
 import com.springboot.util.CustomErrorType;
+
+import com.google.common.base.Throwables;
+import com.google.common.collect.Lists;
+import com.google.common.collect.Maps;
 
 @RestController
 @RequestMapping("/api")
-public class RestApiController {
+public abstract class RestApiController<T, ID extends Serializable>  {
 
 	public static final Logger logger = LoggerFactory.getLogger(RestApiController.class);
 
-	@Autowired
-	UserService userService; //Service which will do all data retrieval/manipulation work
+	private CrudRepository<T, ID> repo;
 
-	// -------------------Retrieve All Users---------------------------------------------
+	public RestApiController(CrudRepository<T, ID> repo) {
+        this.repo = repo;
+        logger.info("------In  RestApiController this.repo = {}", this.repo);
+    }
 
-	@RequestMapping(value = "/user/", method = RequestMethod.GET)
-	public ResponseEntity<List<User>> listAllUsers() {
-		logger.info("Fetching all Users");
-		List<User> users = userService.findAllUsers();
-		if (users.isEmpty()) {
+	// -------------------Retrieve All Entities---------------------------------------------
+
+    @RequestMapping
+    public ResponseEntity<List<T>> listAll() {
+		logger.info("Fetching all Entities");
+        Iterable<T> all = this.repo.findAll();
+        if (Lists.newArrayList(all).isEmpty()) {
 			return new ResponseEntity(HttpStatus.NO_CONTENT);
-			// You many decide to return HttpStatus.NOT_FOUND
+			// You may decide to return HttpStatus.NOT_FOUND
 		}
-		return new ResponseEntity<List<User>>(users, HttpStatus.OK);
-	}
+		return new ResponseEntity<List<T>>(Lists.newArrayList(all), HttpStatus.OK);
+    }
 
-	// -------------------Retrieve Single User------------------------------------------
+	// -------------------Retrieve Single Entity------------------------------------------
 
-	@RequestMapping(value = "/user/{id}", method = RequestMethod.GET)
-	public ResponseEntity<?> getUser(@PathVariable("id") long id) {
-		logger.info("Fetching User with id {}", id);
-		User user = userService.findById(id);
-		if (user == null) {
-			logger.error("User with id {} not found.", id);
-			return new ResponseEntity(new CustomErrorType("User with id " + id 
+    @RequestMapping(value="/{id}", method=RequestMethod.GET)
+    public ResponseEntity<T> get(@PathVariable ID id) {
+		logger.info("Fetching Entity with id {}", id);
+        // return this.repo.findOne(id);
+        T t = this.repo.findOne(id);
+
+        if (t == null) {
+			logger.error("Entity with id {} not found.", id);
+			return new ResponseEntity(new CustomErrorType("Entity with id " + id 
 					+ " not found"), HttpStatus.NOT_FOUND);
 		}
-		return new ResponseEntity<User>(user, HttpStatus.OK);
-	}
+		return new ResponseEntity<T>(t, HttpStatus.OK);
+    }
+// -------------------Retrieve Single Entity By Name ------------------------------------------
 
-	// -------------------Create a User-------------------------------------------
+    /*@RequestMapping(value="/Entity/{name}", method=RequestMethod.GET)
+    public ResponseEntity<T> get(@PathVariable String name) {
+		logger.info("Fetching Entity with id {}", name);
+        // return this.repo.findOne(name);
+        T t = this.repo.findByName(name);
 
-	@RequestMapping(value = "/user/", method = RequestMethod.POST)
-	public ResponseEntity<?> createUser(@RequestBody User user, UriComponentsBuilder ucBuilder) {
-		logger.info("Creating User : {}", user);
-
-		if (userService.isUserExist(user)) {
-			logger.error("Unable to create. A User with name {} already exist", user.getName());
-			return new ResponseEntity(new CustomErrorType("Unable to create. A User with name " + 
-			user.getName() + " already exist."),HttpStatus.CONFLICT);
+        if (t == null) {
+			logger.error("Entity with name {} not found.", name);
+			return new ResponseEntity(new CustomErrorType("Entity with name " + name 
+					+ " not found"), HttpStatus.NOT_FOUND);
 		}
-		userService.saveUser(user);
+		return new ResponseEntity<T>(t, HttpStatus.OK);
+    }*/
 
-		HttpHeaders headers = new HttpHeaders();
-		headers.setLocation(ucBuilder.path("/api/user/{id}").buildAndExpand(user.getId()).toUri());
-		return new ResponseEntity<String>(headers, HttpStatus.CREATED);
-	}
+	// -------------------Create a Entity-------------------------------------------
 
-	// ------------------- Update a User ------------------------------------------------
+    @RequestMapping(method=RequestMethod.POST, consumes={MediaType.APPLICATION_JSON_VALUE})
+    public ResponseEntity<Map<String, Object>> create(@RequestBody T json) {
+		logger.info("Creating Entity : {}", json);
+        logger.debug("create() with body {} of type {}", json, json.getClass());
+        T created = this.repo.save(json);
+        Map<String, Object> m = Maps.newHashMap();
+        m.put("success", true);
+        m.put("created", created);
+		return new ResponseEntity<Map<String, Object>>(m, HttpStatus.CREATED);
+    }
 
-	@RequestMapping(value = "/user/{id}", method = RequestMethod.PUT)
-	public ResponseEntity<?> updateUser(@PathVariable("id") long id, @RequestBody User user) {
-		logger.info("Updating User with id {}", id);
+	// ------------------- Update a Entity ------------------------------------------------
 
-		User currentUser = userService.findById(id);
+    @RequestMapping(value="/{id}", method=RequestMethod.POST, consumes={MediaType.APPLICATION_JSON_VALUE})
+    public ResponseEntity<Map<String, Object>> update(@PathVariable ID id, @RequestBody T json) {
+        logger.debug("update() of id#{} with body {}", id, json);
+        logger.debug("T json is of type {}", json.getClass());
 
-		if (currentUser == null) {
-			logger.error("Unable to update. User with id {} not found.", id);
-			return new ResponseEntity(new CustomErrorType("Unable to upate. User with id " + id + " not found."),
-					HttpStatus.NOT_FOUND);
-		}
+        T entity = this.repo.findOne(id);
+        try {
+            BeanUtils.copyProperties(entity, json);
+        }
+        catch (Exception e) {
+            logger.warn("while copying properties", e);
+            throw Throwables.propagate(e);
+        }
 
-		currentUser.setName(user.getName());
-		currentUser.setAge(user.getAge());
-		currentUser.setSalary(user.getSalary());
+        logger.debug("merged entity: {}", entity);
 
-		userService.updateUser(currentUser);
-		return new ResponseEntity<User>(currentUser, HttpStatus.OK);
-	}
+        T updated = this.repo.save(entity);
+        logger.debug("updated enitity: {}", updated);
 
-	// ------------------- Delete a User-----------------------------------------
+        Map<String, Object> m = Maps.newHashMap();
+        m.put("success", true);
+        m.put("id", id);
+        m.put("updated", updated);
+		return new ResponseEntity<Map<String, Object>>(m, HttpStatus.OK);
+    }
 
-	@RequestMapping(value = "/user/{id}", method = RequestMethod.DELETE)
-	public ResponseEntity<?> deleteUser(@PathVariable("id") long id) {
-		logger.info("Fetching & Deleting User with id {}", id);
+	// ------------------- Delete a Entity-----------------------------------------
 
-		User user = userService.findById(id);
-		if (user == null) {
-			logger.error("Unable to delete. User with id {} not found.", id);
-			return new ResponseEntity(new CustomErrorType("Unable to delete. User with id " + id + " not found."),
-					HttpStatus.NOT_FOUND);
-		}
-		userService.deleteUserById(id);
-		return new ResponseEntity<User>(HttpStatus.NO_CONTENT);
-	}
+    @RequestMapping(value="/{id}", method=RequestMethod.DELETE)
+    public ResponseEntity<Map<String, Object>> delete(@PathVariable ID id) {
+		logger.info("Deleting Entity with id {}", id);
 
-	// ------------------- Delete All Users-----------------------------
+        this.repo.delete(id);
+        Map<String, Object> m = Maps.newHashMap();
+        m.put("success", true);
+		return new ResponseEntity<Map<String, Object>>(m, HttpStatus.NO_CONTENT);
+    }
+    // ------------------- Delete all Entity-----------------------------------------
 
-	@RequestMapping(value = "/user/", method = RequestMethod.DELETE)
-	public ResponseEntity<User> deleteAllUsers() {
-		logger.info("Deleting All Users");
+    @RequestMapping(method=RequestMethod.DELETE)
+    public ResponseEntity<Map<String, Object>> deleteAll() {
+		logger.info("Deletes all entities managed by the repository.");
 
-		userService.deleteAllUsers();
-		return new ResponseEntity<User>(HttpStatus.NO_CONTENT);
-	}
-
+        this.repo.deleteAll();
+        Map<String, Object> m = Maps.newHashMap();
+        m.put("success", true);
+		return new ResponseEntity<Map<String, Object>>(m, HttpStatus.NO_CONTENT);
+    }
 }
